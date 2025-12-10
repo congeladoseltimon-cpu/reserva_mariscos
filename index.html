@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reservas de Marisco</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Reservas de Marisco</h1>
+    <p class="subtitle">Gestor sencillo de reservas para tu marisquería</p>
+  </header>
+
+  <main class="app-main">
+    <section class="toolbar">
+      <button id="btn-nueva-reserva" class="btn primary">Nueva reserva</button>
+      <button id="btn-ver-clientes" class="btn secondary">Listado de clientes</button>
+      <button id="btn-exportar-excel" class="btn secondary">Exportar a Excel</button>
+      <button id="btn-whatsapp-listado-productos" class="btn secondary">Enviar listado productos por WhatsApp</button>
+    </section>
+
+    <!-- FICHA CLIENTE -->
+    <section id="ficha-section" class="card">
+      <h2>Ficha de cliente</h2>
+      <button type="button" id="btn-ver-productos" class="btn secondary" style="margin-bottom: 0.75rem;">
+        Ver lista de productos
+      </button>
+      <div id="lista-productos" class="lista-productos hidden"></div>
+      <form id="ficha-form">
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="nombre">Nombre</label>
+            <input id="nombre" name="nombre" type="text" required />
+          </div>
+          <div class="form-group">
+            <label for="apellidos">Apellidos</label>
+            <input id="apellidos" name="apellidos" type="text" required />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="telefono">Teléfono</label>
+            <input id="telefono" name="telefono" type="tel" required />
+          </div>
+          <div class="form-group">
+            <label for="fecha-entrega">Fecha de entrega</label>
+            <input id="fecha-entrega" name="fecha-entrega" type="date" required />
+          </div>
+        </div>
+
+        <hr />
+
+        <h3>Productos reservados</h3>
+
+        <div class="grid-3 product-row">
+          <div class="form-group">
+            <label for="producto-select">Producto</label>
+            <select id="producto-select">
+              <option value="">-- Selecciona producto --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="cantidad">Peso / Unidades</label>
+            <input id="cantidad" type="number" min="0" step="0.01" placeholder="Ej: 1.5" />
+          </div>
+          <div class="form-group">
+            <label for="precio-kg">Precio por kg (€)</label>
+            <input id="precio-kg" type="number" min="0" step="0.01" placeholder="Se rellena automáticamente" />
+          </div>
+        </div>
+
+        <button type="button" id="btn-add-producto" class="btn tertiary" style="margin-bottom: 0.75rem;">
+          Añadir producto a la reserva
+        </button>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="precio-total">Precio total (€)</label>
+            <input id="precio-total" type="number" min="0" step="0.01" placeholder="Se calcula automáticamente" readonly />
+          </div>
+          <div class="form-group">
+            <label for="cantidad-cuenta">Cantidad a Cuenta (€)</label>
+            <input id="cantidad-cuenta" type="number" min="0" step="0.01" placeholder="0.00" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="total-final">Total final (€)</label>
+          <input id="total-final" type="number" min="0" step="0.01" placeholder="Se calcula automáticamente" readonly />
+        </div>
+
+        <div id="productos-list" class="productos-list"></div>
+
+        <div class="status-row" style="margin-top: 1rem;">
+          <span class="status-label">Estado:</span>
+          <button type="button" class="status-toggle" data-status="reservado">
+            Reservado <span class="emoji">✅</span>
+          </button>
+          <button type="button" class="status-toggle" data-status="guardado">
+            Guardado <span class="emoji">✅</span>
+          </button>
+          <button type="button" class="status-toggle" data-status="entregado">
+            Entregado <span class="emoji">✅</span>
+          </button>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn primary">Guardar ficha</button>
+          <button type="button" id="btn-limpiar" class="btn ghost">Limpiar</button>
+          <button type="button" id="btn-whatsapp-ficha" class="btn secondary">
+            Enviar ficha por WhatsApp
+          </button>
+          <button type="button" id="btn-cerrar-ficha" class="btn ghost">
+            Cerrar ficha
+          </button>
+        </div>
+
+        <input type="hidden" id="ficha-id" value="" />
+      </form>
+    </section>
+
+    <!-- LISTADO CLIENTES -->
+    <section id="listado-section" class="card hidden">
+      <h2>Listado de clientes</h2>
+      <div id="clientes-list" class="clientes-list"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <small>App de reservas de marisco · Demo local (datos en tu navegador)</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
