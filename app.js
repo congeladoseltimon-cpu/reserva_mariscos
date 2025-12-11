@@ -127,6 +127,20 @@ function inicializarUI() {
     .addEventListener("click", enviarFichaWhatsApp);
 
   document
+    .getElementById("btn-backup")
+    .addEventListener("click", exportarBackup);
+
+  document
+    .getElementById("btn-restaurar-backup")
+    .addEventListener("click", () => {
+      document.getElementById("input-restaurar-backup").click();
+    });
+
+  document
+    .getElementById("input-restaurar-backup")
+    .addEventListener("change", importarBackup);
+
+  document
     .getElementById("btn-cerrar-ficha")
     .addEventListener("click", mostrarListado);
 
@@ -925,4 +939,155 @@ function actualizarSelectProductos() {
   if (valorActual) {
     productoSelect.value = valorActual;
   }
+}
+
+// Función para exportar copia de seguridad
+function exportarBackup() {
+  if (!reservas.length) {
+    alert("No hay fichas de clientes para exportar.");
+    return;
+  }
+
+  // Crear objeto con todos los datos de las reservas
+  const datosBackup = {
+    version: "1.0",
+    fechaExportacion: new Date().toISOString(),
+    reservas: reservas
+  };
+
+  // Convertir a formato JavaScript que sea importable
+  const contenidoJS = `// Copia de seguridad de fichas de clientes
+// Fecha de exportación: ${new Date().toLocaleString('es-ES')}
+// Total de fichas: ${reservas.length}
+
+const backupData = ${JSON.stringify(datosBackup, null, 2)};
+
+// Para restaurar, ejecuta: restaurarBackup(backupData);
+`;
+
+  // Crear blob y descargar
+  const blob = new Blob([contenidoJS], { type: "application/javascript;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `backup_reservas_${new Date().toISOString().split('T')[0]}.js`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  alert(`Copia de seguridad exportada correctamente.\nTotal de fichas: ${reservas.length}`);
+}
+
+// Función para importar copia de seguridad
+function importarBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const contenido = e.target.result;
+      
+      // Extraer el JSON del archivo JS
+      // Buscamos desde "const backupData = " hasta el punto y coma final
+      const inicio = contenido.indexOf('const backupData = ');
+      if (inicio === -1) {
+        throw new Error("No se pudo encontrar los datos de backup en el archivo.");
+      }
+      
+      // Encontrar el inicio del objeto JSON (después del =)
+      let posInicio = contenido.indexOf('{', inicio);
+      if (posInicio === -1) {
+        throw new Error("Formato de archivo inválido.");
+      }
+      
+      // Encontrar el final del objeto JSON (antes del punto y coma)
+      // Necesitamos contar las llaves para encontrar el cierre correcto
+      let nivel = 0;
+      let posFinal = posInicio;
+      let dentroComillas = false;
+      let escape = false;
+      
+      for (let i = posInicio; i < contenido.length; i++) {
+        const char = contenido[i];
+        
+        if (escape) {
+          escape = false;
+          continue;
+        }
+        
+        if (char === '\\') {
+          escape = true;
+          continue;
+        }
+        
+        if (char === '"' && !escape) {
+          dentroComillas = !dentroComillas;
+          continue;
+        }
+        
+        if (dentroComillas) continue;
+        
+        if (char === '{') {
+          nivel++;
+        } else if (char === '}') {
+          nivel--;
+          if (nivel === 0) {
+            posFinal = i + 1;
+            break;
+          }
+        }
+      }
+      
+      if (nivel !== 0) {
+        throw new Error("El objeto JSON en el archivo está incompleto.");
+      }
+      
+      // Extraer y parsear el JSON
+      const jsonStr = contenido.substring(posInicio, posFinal);
+      const datosBackup = JSON.parse(jsonStr);
+      
+      if (!datosBackup || !Array.isArray(datosBackup.reservas)) {
+        throw new Error("El archivo no contiene datos válidos de copia de seguridad.");
+      }
+
+      // Confirmar antes de importar
+      const confirmar = confirm(
+        `Se encontraron ${datosBackup.reservas.length} fichas en la copia de seguridad.\n\n` +
+        `¿Deseas restaurar estas fichas?\n\n` +
+        `ADVERTENCIA: Esto reemplazará todas las fichas actuales.`
+      );
+
+      if (!confirmar) {
+        // Limpiar el input
+        event.target.value = "";
+        return;
+      }
+
+      // Restaurar las reservas
+      reservas = datosBackup.reservas;
+      guardarEnStorage();
+      
+      alert(`Copia de seguridad restaurada correctamente.\nTotal de fichas restauradas: ${reservas.length}`);
+      
+      // Actualizar la interfaz
+      renderizarListadoClientes();
+      mostrarListado();
+      
+    } catch (error) {
+      console.error("Error importando backup:", error);
+      alert(`Error al importar la copia de seguridad:\n${error.message}\n\nAsegúrate de que el archivo es una copia de seguridad válida.`);
+    } finally {
+      // Limpiar el input
+      event.target.value = "";
+    }
+  };
+  
+  reader.onerror = function() {
+    alert("Error al leer el archivo.");
+    event.target.value = "";
+  };
+  
+  reader.readAsText(file);
 }

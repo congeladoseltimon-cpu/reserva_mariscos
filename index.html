@@ -15,9 +15,9 @@
   <main class="app-main">
     <section class="toolbar">
       <button id="btn-nueva-reserva" class="btn primary">Nueva reserva</button>
-      <button id="btn-ver-clientes" class="btn secondary">Listado de clientes</button>
-      <button id="btn-exportar-excel" class="btn secondary">Exportar a Excel</button>
-      <button id="btn-whatsapp-listado-productos" class="btn secondary">Enviar listado productos por WhatsApp</button>
+      <button id="btn-ver-clientes" class="btn secondary">Clientes</button>
+      <button id="btn-exportar-excel" class="btn secondary">Exportar</button>
+      <button id="btn-whatsapp-listado-productos" class="btn secondary">Listado</button>
     </section>
 
     <!-- FICHA CLIENTE -->
@@ -111,12 +111,19 @@
           <button type="button" id="btn-whatsapp-ficha" class="btn secondary">
             Enviar ficha por WhatsApp
           </button>
+          <button type="button" id="btn-backup" class="btn secondary">
+            Copia de seguridad
+          </button>
+          <button type="button" id="btn-restaurar-backup" class="btn secondary">
+            Restaurar copia
+          </button>
           <button type="button" id="btn-cerrar-ficha" class="btn ghost">
             Cerrar ficha
           </button>
         </div>
 
         <input type="hidden" id="ficha-id" value="" />
+        <input type="file" id="input-restaurar-backup" accept=".js" style="display: none;" />
       </form>
     </section>
 
