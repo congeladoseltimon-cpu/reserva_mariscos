@@ -173,13 +173,13 @@ function actualizarPrecioKgInfo() {
   const precioKgInput = document.getElementById("precio-kg");
   const id = productoSelect.value;
   const prod = PRODUCTOS.find((p) => p.id === id);
-  
+
   if (!prod) {
     precioKgInput.value = "";
   } else {
     precioKgInput.value = prod.precioKg;
   }
-  
+
   calcularPrecioTotal();
 }
 
@@ -194,27 +194,27 @@ function actualizarTotalFinal() {
   const cantidadCuentaInput = document.getElementById("cantidad-cuenta");
   const precioTotalInput = document.getElementById("precio-total");
   const totalFinalInput = document.getElementById("total-final");
-  
+
   // Calcular subtotal de productos temporales (suma de todos los productos añadidos)
   const subtotal = productosTemporal.reduce(
     (suma, item) => suma + (parseFloat(item.precio) || 0),
     0
   );
-  
+
   // Actualizar el campo "Precio total" con la suma de todos los productos
   if (subtotal > 0) {
     precioTotalInput.value = subtotal.toFixed(2);
   } else {
     precioTotalInput.value = "";
   }
-  
+
   // Obtener cantidad a cuenta del input
   const cantidadACuentaValue = parseFloat(cantidadCuentaInput.value || "0");
   cantidadACuenta = cantidadACuentaValue;
-  
+
   // Calcular total final
   const totalFinal = Math.max(0, subtotal - cantidadACuentaValue);
-  
+
   if (subtotal > 0) {
     totalFinalInput.value = totalFinal.toFixed(2);
   } else {
@@ -541,11 +541,11 @@ function borrarReserva(id) {
 // Construye texto legible de una ficha
 function construirTextoFicha(reserva) {
   const lineas = [];
-  
+
   // 1. Nombre y Apellidos
   lineas.push(`${reserva.nombre} ${reserva.apellidos}`);
   lineas.push("");
-  
+
   // 2. Productos (debajo paso y precio)
   if (!reserva.productos || !reserva.productos.length) {
     lineas.push("Sin productos");
@@ -556,7 +556,7 @@ function construirTextoFicha(reserva) {
       lineas.push("");
     });
   }
-  
+
   // 3. Precio total (subtotal)
   const subtotal = reserva.subtotal || reserva.productos?.reduce(
     (suma, item) => suma + (parseFloat(item.precio) || 0),
@@ -564,28 +564,28 @@ function construirTextoFicha(reserva) {
   ) || 0;
   lineas.push(`Precio total: ${subtotal.toFixed(2)} €`);
   lineas.push("");
-  
+
   // 4. Cantidad a cuenta
   const cantidadACuenta = reserva.cantidadACuenta || 0;
   lineas.push(`Cantidad a cuenta: ${cantidadACuenta.toFixed(2)} €`);
   lineas.push("");
-  
+
   // 5. Total final
   const totalFinal = reserva.total || Math.max(0, subtotal - cantidadACuenta);
   lineas.push(`Total final: ${totalFinal.toFixed(2)} €`);
   lineas.push("");
-  
+
   // 6. Estado: solo los que estén verificados
   const estados = [];
   if (reserva.estados.reservado) estados.push("Reservado");
   if (reserva.estados.guardado) estados.push("Guardado");
   if (reserva.estados.entregado) estados.push("Entregado");
-  
+
   if (estados.length > 0) {
     lineas.push(`Estado: ${estados.join(" · ")}`);
     lineas.push("");
   }
-  
+
   // 7. Fecha de entrega (formato día/mes/año)
   let fechaFormateada = reserva.fechaEntrega;
   if (fechaFormateada) {
@@ -597,10 +597,10 @@ function construirTextoFicha(reserva) {
   }
   lineas.push(`Fecha de entrega: ${fechaFormateada}`);
   lineas.push("");
-  
+
   // 8. Texto final
   lineas.push("El total final del pedido es orientativo, a falta del pesaje final.");
-  
+
   return lineas.join("\n");
 }
 
@@ -691,39 +691,69 @@ function exportarExcel() {
   }
 
   const cabecera = [
-    "ID",
+    "IDReserva",
     "Nombre",
     "Apellidos",
     "Telefono",
     "FechaEntrega",
-    "Reservado",
-    "Guardado",
-    "Entregado",
-    "Total",
-    "Productos",
+    "Estado",
+    "Producto",
+    "Peso",
+    "Precio por kg",
+    "Precio total",
+    "Cantidad a cuenta",
+    "Total final",
   ];
 
-  const filas = reservas.map((r) => {
-    const productosTexto = (r.productos || [])
-      .map(
-        (p) =>
-          `${p.nombre} (${p.cantidad} kg/u - ${(parseFloat(p.precio) ||
-            0).toFixed(2)} €)`
-      )
-      .join(" | ");
+  const filas = [];
 
-    return [
-      r.id,
-      r.nombre,
-      r.apellidos,
-      r.telefono,
-      r.fechaEntrega,
-      r.estados.reservado ? "1" : "0",
-      r.estados.guardado ? "1" : "0",
-      r.estados.entregado ? "1" : "0",
-      r.total.toFixed(2),
-      productosTexto,
-    ];
+  reservas.forEach((reserva) => {
+    const estados = [];
+    if (reserva.estados.reservado) estados.push("Reservado");
+    if (reserva.estados.guardado) estados.push("Guardado");
+    if (reserva.estados.entregado) estados.push("Entregado");
+    const estadoTexto = estados.join(" / ");
+
+    if (reserva.productos && reserva.productos.length > 0) {
+      reserva.productos.forEach((producto, index) => {
+        const esPrimeraLinea = index === 0;
+        const precioPorKg =
+          producto.cantidad > 0 ? (parseFloat(producto.precio) || 0) / producto.cantidad : 0;
+
+        const fila = [
+          esPrimeraLinea ? reserva.id : "",
+          esPrimeraLinea ? reserva.nombre : "",
+          esPrimeraLinea ? reserva.apellidos : "",
+          esPrimeraLinea ? reserva.telefono : "",
+          esPrimeraLinea ? reserva.fechaEntrega : "",
+          esPrimeraLinea ? estadoTexto : "",
+          producto.nombre,
+          producto.cantidad,
+          precioPorKg.toFixed(2),
+          (parseFloat(producto.precio) || 0).toFixed(2),
+          (parseFloat(reserva.cantidadACuenta) || 0).toFixed(2),
+          (parseFloat(reserva.total) || 0).toFixed(2),
+        ];
+        filas.push(fila);
+      });
+    } else {
+      // Reserva sin productos
+      const fila = [
+        reserva.id,
+        reserva.nombre,
+        reserva.apellidos,
+        reserva.telefono,
+        reserva.fechaEntrega,
+        estadoTexto,
+        "", // Producto
+        "", // Peso
+        "", // Precio por kg
+        "", // Precio total
+        (parseFloat(reserva.cantidadACuenta) || 0).toFixed(2),
+        (parseFloat(reserva.total) || 0).toFixed(2),
+      ];
+      filas.push(fila);
+    }
   });
 
   const lineas = [cabecera, ...filas].map((fila) =>
@@ -745,12 +775,13 @@ function exportarExcel() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "reservas_marisco.csv";
+  a.download = "reservas_marisco_detalle.csv";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 // Enviar listado de productos por WhatsApp (sin número, para elegir contacto)
 function enviarListadoProductosWhatsApp() {
@@ -758,12 +789,12 @@ function enviarListadoProductosWhatsApp() {
   lineas.push("LISTADO DE PRODUCTOS Y PRECIOS/KG");
   lineas.push("--------------------------------");
   lineas.push("");
-  
+
   // Ordenar productos alfabéticamente por nombre
-  const productosOrdenados = [...PRODUCTOS].sort((a, b) => 
+  const productosOrdenados = [...PRODUCTOS].sort((a, b) =>
     a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
   );
-  
+
   productosOrdenados.forEach((p) => {
     lineas.push(`${p.nombre}`);
     lineas.push(`${p.precioKg} €/kg`);
@@ -778,7 +809,7 @@ function enviarListadoProductosWhatsApp() {
 function toggleListaProductos() {
   const listaDiv = document.getElementById("lista-productos");
   const btn = document.getElementById("btn-ver-productos");
-  
+
   if (listaDiv.classList.contains("hidden")) {
     renderizarListaProductos();
     listaDiv.classList.remove("hidden");
@@ -792,7 +823,7 @@ function toggleListaProductos() {
 function renderizarListaProductos() {
   const cont = document.getElementById("lista-productos");
   cont.innerHTML = "";
-  
+
   // Botón añadir producto
   const btnAñadir = document.createElement("button");
   btnAñadir.type = "button";
@@ -802,45 +833,45 @@ function renderizarListaProductos() {
   btnAñadir.style.marginBottom = "0.75rem";
   btnAñadir.addEventListener("click", añadirProducto);
   cont.appendChild(btnAñadir);
-  
+
   // Ordenar productos alfabéticamente por nombre
-  const productosOrdenados = [...PRODUCTOS].sort((a, b) => 
+  const productosOrdenados = [...PRODUCTOS].sort((a, b) =>
     a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
   );
-  
+
   productosOrdenados.forEach((p) => {
     const div = document.createElement("div");
     div.className = "producto-lista-item";
-    
+
     const productoCol = document.createElement("div");
     productoCol.className = "producto-col";
     productoCol.textContent = p.nombre;
-    
+
     const precioCol = document.createElement("div");
     precioCol.className = "precio-col";
     precioCol.textContent = `${p.precioKg} €/kg`;
-    
+
     const accionesCol = document.createElement("div");
     accionesCol.className = "acciones-col";
     accionesCol.style.display = "flex";
     accionesCol.style.gap = "0.5rem";
     accionesCol.style.alignItems = "center";
-    
+
     const editarCol = document.createElement("div");
     editarCol.className = "editar-col";
     editarCol.textContent = "✏️";
     editarCol.style.cursor = "pointer";
     editarCol.addEventListener("click", () => editarPrecioProducto(p.id));
-    
+
     const eliminarCol = document.createElement("div");
     eliminarCol.className = "eliminar-col";
     eliminarCol.textContent = "🗑️";
     eliminarCol.style.cursor = "pointer";
     eliminarCol.addEventListener("click", () => eliminarProducto(p.id));
-    
+
     accionesCol.appendChild(editarCol);
     accionesCol.appendChild(eliminarCol);
-    
+
     div.appendChild(productoCol);
     div.appendChild(precioCol);
     div.appendChild(accionesCol);
@@ -851,20 +882,20 @@ function renderizarListaProductos() {
 function editarPrecioProducto(productoId) {
   const producto = PRODUCTOS.find((p) => p.id === productoId);
   if (!producto) return;
-  
+
   const nuevoPrecio = prompt(
     `Editar precio de ${producto.nombre}\n\nPrecio actual: ${producto.precioKg} €/kg\n\nIntroduce el nuevo precio:`,
     producto.precioKg
   );
-  
+
   if (nuevoPrecio === null) return; // Usuario canceló
-  
+
   const precioNum = parseFloat(nuevoPrecio.replace(",", "."));
   if (isNaN(precioNum) || precioNum < 0) {
     alert("Por favor, introduce un precio válido (número mayor o igual a 0).");
     return;
   }
-  
+
   producto.precioKg = precioNum;
   guardarProductos();
   renderizarListaProductos();
@@ -877,27 +908,27 @@ function añadirProducto() {
   if (!nombre || nombre.trim() === "") {
     return; // Usuario canceló o nombre vacío
   }
-  
+
   const precioStr = prompt(`Introduce el precio por kilo (€/kg) para "${nombre.trim()}":`);
   if (precioStr === null) {
     return; // Usuario canceló
   }
-  
+
   const precioNum = parseFloat(precioStr.replace(",", "."));
   if (isNaN(precioNum) || precioNum < 0) {
     alert("Por favor, introduce un precio válido (número mayor o igual a 0).");
     return;
   }
-  
+
   // Generar ID único
   const nuevoId = nombre.trim().toLowerCase().replace(/\s+/g, "_") + "_" + Date.now();
-  
+
   const nuevoProducto = {
     id: nuevoId,
     nombre: nombre.trim(),
     precioKg: precioNum
   };
-  
+
   PRODUCTOS.push(nuevoProducto);
   guardarProductos();
   renderizarListaProductos();
@@ -907,11 +938,11 @@ function añadirProducto() {
 function eliminarProducto(productoId) {
   const producto = PRODUCTOS.find((p) => p.id === productoId);
   if (!producto) return;
-  
+
   if (!confirm(`¿Estás seguro de que quieres eliminar el producto "${producto.nombre}"?\n\nEsta acción no se puede deshacer.`)) {
     return;
   }
-  
+
   PRODUCTOS = PRODUCTOS.filter((p) => p.id !== productoId);
   guardarProductos();
   renderizarListaProductos();
@@ -923,19 +954,19 @@ function actualizarSelectProductos() {
   const productoSelect = document.getElementById("producto-select");
   const valorActual = productoSelect.value;
   productoSelect.innerHTML = '<option value="">-- Selecciona producto --</option>';
-  
+
   // Ordenar productos alfabéticamente por nombre
-  const productosOrdenados = [...PRODUCTOS].sort((a, b) => 
+  const productosOrdenados = [...PRODUCTOS].sort((a, b) =>
     a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
   );
-  
+
   productosOrdenados.forEach((p) => {
     const opt = document.createElement("option");
     opt.value = p.id;
     opt.textContent = p.nombre;
     productoSelect.appendChild(opt);
   });
-  
+
   if (valorActual) {
     productoSelect.value = valorActual;
   }
@@ -975,7 +1006,7 @@ const backupData = ${JSON.stringify(datosBackup, null, 2)};
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  
+
   alert(`Copia de seguridad exportada correctamente.\nTotal de fichas: ${reservas.length}`);
 }
 
@@ -988,47 +1019,47 @@ function importarBackup(event) {
   reader.onload = function(e) {
     try {
       const contenido = e.target.result;
-      
+
       // Extraer el JSON del archivo JS
       // Buscamos desde "const backupData = " hasta el punto y coma final
       const inicio = contenido.indexOf('const backupData = ');
       if (inicio === -1) {
         throw new Error("No se pudo encontrar los datos de backup en el archivo.");
       }
-      
+
       // Encontrar el inicio del objeto JSON (después del =)
       let posInicio = contenido.indexOf('{', inicio);
       if (posInicio === -1) {
         throw new Error("Formato de archivo inválido.");
       }
-      
+
       // Encontrar el final del objeto JSON (antes del punto y coma)
       // Necesitamos contar las llaves para encontrar el cierre correcto
       let nivel = 0;
       let posFinal = posInicio;
       let dentroComillas = false;
       let escape = false;
-      
+
       for (let i = posInicio; i < contenido.length; i++) {
         const char = contenido[i];
-        
+
         if (escape) {
           escape = false;
           continue;
         }
-        
+
         if (char === '\\') {
           escape = true;
           continue;
         }
-        
+
         if (char === '"' && !escape) {
           dentroComillas = !dentroComillas;
           continue;
         }
-        
+
         if (dentroComillas) continue;
-        
+
         if (char === '{') {
           nivel++;
         } else if (char === '}') {
@@ -1039,15 +1070,15 @@ function importarBackup(event) {
           }
         }
       }
-      
+
       if (nivel !== 0) {
         throw new Error("El objeto JSON en el archivo está incompleto.");
       }
-      
+
       // Extraer y parsear el JSON
       const jsonStr = contenido.substring(posInicio, posFinal);
       const datosBackup = JSON.parse(jsonStr);
-      
+
       if (!datosBackup || !Array.isArray(datosBackup.reservas)) {
         throw new Error("El archivo no contiene datos válidos de copia de seguridad.");
       }
@@ -1068,13 +1099,13 @@ function importarBackup(event) {
       // Restaurar las reservas
       reservas = datosBackup.reservas;
       guardarEnStorage();
-      
+
       alert(`Copia de seguridad restaurada correctamente.\nTotal de fichas restauradas: ${reservas.length}`);
-      
+
       // Actualizar la interfaz
       renderizarListadoClientes();
       mostrarListado();
-      
+
     } catch (error) {
       console.error("Error importando backup:", error);
       alert(`Error al importar la copia de seguridad:\n${error.message}\n\nAsegúrate de que el archivo es una copia de seguridad válida.`);
@@ -1083,11 +1114,11 @@ function importarBackup(event) {
       event.target.value = "";
     }
   };
-  
+
   reader.onerror = function() {
     alert("Error al leer el archivo.");
     event.target.value = "";
   };
-  
+
   reader.readAsText(file);
 }
